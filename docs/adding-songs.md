@@ -15,6 +15,7 @@
         - Akordy musejí být po celou dobu písně i pokud se opakují.
         - Snažíme se zpěvníček tvořit celistvě a komplexně. Proto každá píseň musí být psaná celá, tj. ne např. text sloky a následně R jako refrén, ale je třeba zkopírovat celý text refrénu.
         - Pokud uděláte nový řádek, udělá se nový řádek i ve zpěvníčku.
+        - Pro tučné označení části lze použít přesně `<strong>REF:</strong>` bez dalších atributů. Ostatní HTML se zobrazí jako text.
         - Každý akord musí být napsaný v jedněch závorkách `[Ami][Emi]`. Syntaxe `[Ami, Emi]` je zakázaná z důvodu automatické transpozice tóniny.
         - Pole pro obsah lze zvětšit v pravém dolním rohu.
 3. Před stažením si vše řádně zkontrolujte, případně si celou píseň zahrajte, abyste ověřili, že nedošlo k chybě.
