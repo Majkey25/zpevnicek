@@ -5,6 +5,7 @@
         "dev": "next",
         "build": "next build",
         "start": "next start",
+        "test": "node --test tests/*.test.mjs",
         "prebuild": "node json-operations.js -m"
     },
     "dependencies": {
