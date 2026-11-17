@@ -1,0 +1,92 @@
+name: Dependency verification
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - yarn.lock
+      - .node-version
+      - next.config.*
+      - eslint.config.*
+      - service-worker.js
+      - styles/**
+      - components/**
+      - lib/**
+      - pages/**
+      - tests/**
+      - .github/scripts/**
+      - .github/workflows/dependency-verification.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: baseline
+            ref: ${{ github.event.pull_request.base.sha || '8b2160b04ba971748dd814944abb558a870442c0' }}
+          - name: candidate
+            ref: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Check out verification scripts
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: Majkey25/zpevnicek
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: verification
+          persist-credentials: false
+      - name: Check out application revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: Majkey25/zpevnicek
+          ref: ${{ matrix.ref }}
+          path: app
+          persist-credentials: false
+      - name: Set up the shared Node.js runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: verification/.node-version
+      - name: Record the application revision
+        working-directory: app
+        run: |
+          mkdir -p "$RUNNER_TEMP/zpevnicek-evidence"
+          git rev-parse HEAD > "$RUNNER_TEMP/zpevnicek-evidence/source-commit.txt"
+      - name: Install the frozen application graph
+        working-directory: app
+        run: npm exec --yes --package=yarn@1.22.22 -- yarn install --frozen-lockfile --ignore-scripts --registry https://registry.npmjs.org
+      - name: Verify published song rendering
+        if: ${{ !cancelled() }}
+        working-directory: app
+        run: npm test
+      - name: Build the production application
+        working-directory: app
+        run: npm run build
+      - name: Install isolated browser tools
+        id: browser_tools
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_GC: "1"
+        run: |
+          npm install --prefix "$RUNNER_TEMP/zpevnicek-browser" --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.65.1 @yarnpkg/lockfile@1.1.0
+          "$RUNNER_TEMP/zpevnicek-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify navigation, search, export and offline behavior
+        working-directory: app
+        run: node "$GITHUB_WORKSPACE/verification/.github/scripts/verify-dependencies.mjs" "$RUNNER_TEMP/zpevnicek-browser" "$RUNNER_TEMP/zpevnicek-evidence" "${{ matrix.name }}"
+      - name: Audit the frozen graph
+        if: ${{ !cancelled() && steps.browser_tools.outcome == 'success' }}
+        working-directory: app
+        run: node "$GITHUB_WORKSPACE/verification/.github/scripts/audit-dependencies.mjs" "$RUNNER_TEMP/zpevnicek-browser" "$RUNNER_TEMP/zpevnicek-evidence" "${{ matrix.name }}"
+      - name: Upload verification evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dependency-${{ matrix.name }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/zpevnicek-evidence
+          if-no-files-found: error
+          retention-days: 3
