@@ -35,21 +35,21 @@ jobs:
             ref: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - name: Check out verification scripts
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Majkey25/zpevnicek
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: verification
           persist-credentials: false
       - name: Check out application revision
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Majkey25/zpevnicek
           ref: ${{ matrix.ref }}
           path: app
           persist-credentials: false
       - name: Set up the shared Node.js runtime
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: verification/.node-version
       - name: Record the application revision
@@ -84,7 +84,7 @@ jobs:
         run: node "$GITHUB_WORKSPACE/verification/.github/scripts/audit-dependencies.mjs" "$RUNNER_TEMP/zpevnicek-browser" "$RUNNER_TEMP/zpevnicek-evidence" "${{ matrix.name }}"
       - name: Upload verification evidence
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dependency-${{ matrix.name }}-${{ github.run_id }}
           path: ${{ runner.temp }}/zpevnicek-evidence
