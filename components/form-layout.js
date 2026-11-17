@@ -142,10 +142,11 @@ export default function htmlFormLayout() {
         >
           Stáhnout JSON
         </button>
-        <Link href="https://github.com/StudentTraineeCenter/zpevnicek/blob/master/docs/adding-songs.md">
-          <button className="bg-[#acacac] hover:bg-[#808080] duration-200	text-white font-bold py-2 px-4 rounded">
-            Jak nahrát píseň
-          </button>
+        <Link
+          href="https://github.com/StudentTraineeCenter/zpevnicek/blob/master/docs/adding-songs.md"
+          className="bg-[#acacac] hover:bg-[#808080] duration-200	text-white font-bold py-2 px-4 rounded"
+        >
+          Jak nahrát píseň
         </Link>
       </div>
     </div>

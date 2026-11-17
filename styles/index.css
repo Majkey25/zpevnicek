@@ -19,6 +19,78 @@
   border-color: #0078d4 !important;
 }
 
+/* Keep the previous react-search-box appearance; see licenses/react-search-box.txt. */
+.song-search {
+  --song-search-border: #cacaca96;
+  display: flex;
+  flex-direction: column;
+}
+
+.song-search-input-container {
+  position: relative;
+}
+
+.song-search-input {
+  font-size: 14px;
+  padding: 10px 20px;
+  height: 40px;
+  border: 1px solid var(--song-search-border);
+  border-radius: 5px;
+  color: #000;
+  background-color: #fff;
+  width: 100%;
+}
+
+.song-search-input:focus {
+  outline: none;
+}
+
+.song-search-dropdown {
+  margin: 10px 0 0;
+  background-color: #fff;
+  box-shadow: rgba(0, 0, 0, 0.1) 0 0 0 0, rgba(0, 0, 0, 0.1) 0 4px 11px;
+  border-radius: 5px;
+}
+
+.song-search-dropdown ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.song-search-dropdown li {
+  background-color: #fff;
+  border: 1px solid var(--song-search-border);
+  height: 40px;
+}
+
+.song-search-dropdown li:hover {
+  background-color: #ccc;
+}
+
+.song-search-dropdown li:first-child {
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+.song-search-dropdown li:last-child {
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.song-search-dropdown li:not(:first-child) {
+  border-top: 0;
+}
+
+.song-search-dropdown button {
+  border-radius: inherit;
+  padding: 10px 20px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background: #24292e;

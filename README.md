@@ -16,6 +16,8 @@ Na našem [blogu máme článek](https://studuj.digital/2019/12/20/jak-pomoci-az
 
 ## Commands
 
+Use Node.js 24 and Yarn 1.22.22.
+
 Install dependences.
 ```
 yarn

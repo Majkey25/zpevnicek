@@ -1,6 +1,16 @@
-const withPWA = require("next-pwa");
+import { randomUUID } from "node:crypto";
+import withSerwistInit from "@serwist/next";
 
-module.exports = withPWA({
+const withSerwist = withSerwistInit({
+  swSrc: "service-worker.js",
+  swDest: "public/sw.js",
+  cacheOnNavigation: true,
+  disable: process.env.NODE_ENV === "development",
+  // Offline HTML must reference the current build's hashed scripts.
+  additionalPrecacheEntries: [{ url: "/_offline/", revision: randomUUID() }],
+});
+
+export default withSerwist({
   trailingSlash: true,
   async headers() {
     return [
@@ -24,10 +34,5 @@ module.exports = withPWA({
         ],
       },
     ];
-  },
-  pwa: {
-    dest: "public",
-    cacheOnFrontEndNav: true,
-    disable: process.env.NODE_ENV === "development",
   },
 });
