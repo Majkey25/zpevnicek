@@ -109,6 +109,7 @@ try {
       assert.equal(await page.getByPlaceholder("Prohledávej zpěvníček").evaluate((input) => getComputedStyle(input).backgroundColor), "rgb(255, 255, 255)");
       await page.getByPlaceholder("Prohledávej zpěvníček").fill("Malování");
       await page.locator(".react-search-box-dropdown-list-item").filter({ hasText: "Malování" }).first().waitFor();
+      await page.waitForFunction(() => getComputedStyle(document.querySelector(".searchBox input")).borderColor === "rgb(0, 120, 212)");
       await page.screenshot({ path: join(outputDirectory, `search-${width}.png`), animations: "disabled" });
       await page.locator(".react-search-box-dropdown-list-item").filter({ hasText: "Malování" }).first().click();
       await page.waitForURL("**/song/malovani-divokej-bill/");
