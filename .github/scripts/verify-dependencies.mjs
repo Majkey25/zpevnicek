@@ -10,7 +10,7 @@ assert.ok(toolDirectory && outputDirectory && ["baseline", "candidate"].includes
 const require = createRequire(join(toolDirectory, "package.json"));
 const { chromium } = require("playwright");
 const application = process.cwd();
-const results = { phase, routes: [], interactions: [] };
+const results = { phase, routes: [], interactions: [], failures: [] };
 await mkdir(outputDirectory, { recursive: true });
 
 const server = spawn(process.execPath, [join(application, "node_modules/next/dist/bin/next"), "start", "--hostname", "127.0.0.1", "--port", "0"], {
@@ -96,10 +96,11 @@ try {
         }));
         results.routes.push({ name, width, ...snapshot, errors: [...errors] });
         await page.screenshot({ path: join(outputDirectory, `${name}-${width}.png`), fullPage: name !== "home", animations: "disabled" });
-        assert.equal(errors.length, 0, `${name}: ${errors.join("; ")}`);
-        assert.equal(snapshot.brokenImages.length, 0, `${name}: broken images`);
+        if (errors.length) results.failures.push({ width, name, error: errors.join("; ") });
+        if (snapshot.brokenImages.length) results.failures.push({ width, name, error: `Broken images: ${snapshot.brokenImages.join(", ")}` });
       }
 
+      errors = [];
       await page.goto(origin + "/");
       await page.emulateMedia({ colorScheme: "dark" });
       assert.equal(await page.getByPlaceholder("Prohledávej zpěvníček").evaluate((input) => getComputedStyle(input).backgroundColor), "rgb(36, 41, 46)");
@@ -160,8 +161,10 @@ try {
       assert.deepEqual(JSON.parse(await readFile(await download.path(), "utf8")), {
         name: "Zkušební píseň", slug: "zkusebni-pisen-testovaci-autor", author: "Testovací autor", note: "Místní test", text: "[Ami]Český text\n[G]Další řádek",
       });
+      if (errors.length) results.failures.push({ width, name: "interactions", error: errors.join("; ") });
       results.interactions.push({ width, search: "home and author passed", navigation: "passed", exportValidation: "passed", download: "passed", labMetrics: await page.evaluate(() => window.__metrics) });
 
+      assert.equal((await page.request.get(origin + "/sw.js")).status(), 200, "The service worker script must be served successfully");
       await page.goto(origin + "/");
       await page.waitForFunction(async () => Boolean((await navigator.serviceWorker.getRegistration())?.active));
       const worker = await page.evaluate(async () => {
@@ -201,10 +204,13 @@ try {
       assert.equal((await missingPage.goto(origin + "/never-existing-test-song/")).status(), 404);
       await missingPage.close();
       results.interactions.push({ width, serviceWorker: worker, cachedSongOffline: "passed", offlineSearchAndNavigation: "passed", offlineFallback: "passed", missingRoute: 404 });
+    } catch (error) {
+      results.failures.push({ width, error: error.stack });
     } finally {
       await context.close();
     }
   }
+  assert.equal(results.failures.length, 0, JSON.stringify(results.failures));
 } catch (error) {
   results.failure = error.stack;
   throw error;

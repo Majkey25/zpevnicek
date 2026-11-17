@@ -8,7 +8,8 @@ import { promisify } from "node:util";
 const [toolDirectory, outputDirectory, phase] = process.argv.slice(2);
 assert.ok(toolDirectory && outputDirectory && ["baseline", "candidate"].includes(phase));
 const require = createRequire(join(toolDirectory, "package.json"));
-const parsed = require("@yarnpkg/lockfile").parse(await readFile("yarn.lock", "utf8"));
+const frozenLock = await readFile("yarn.lock");
+const parsed = require("@yarnpkg/lockfile").parse(frozenLock.toString("utf8"));
 assert.equal(parsed.type, "success");
 const versions = new Map();
 for (const [descriptor, value] of Object.entries(parsed.object)) {
@@ -24,9 +25,25 @@ const npmRequire = createRequire(join(dirname(npmCli), "../package.json"));
 const Arborist = npmRequire("@npmcli/arborist");
 const { checkPlatform } = npmRequire("npm-install-checks");
 const run = promisify(execFile);
-console.log("Generating a temporary npm audit lockfile from the frozen Yarn graph.");
-await run(process.execPath, [npmCli, "install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund"], { maxBuffer: 8 * 1024 * 1024 });
-await run(process.execPath, [npmCli, "ls", "--all", "--package-lock-only", "--json"], { maxBuffer: 8 * 1024 * 1024 });
+for (const filename of ["package-lock.json", "npm-shrinkwrap.json"]) {
+  await assert.rejects(readFile(filename), { code: "ENOENT" }, "Audit requires a fresh Yarn installation without an npm lockfile");
+}
+console.log("Writing an audit shrinkwrap from the installed frozen Yarn graph.");
+try {
+  await run(process.execPath, [npmCli, "shrinkwrap", "--ignore-scripts"], { maxBuffer: 8 * 1024 * 1024 });
+} finally {
+  await writeFile("yarn.lock", frozenLock);
+}
+let peerReport;
+try {
+  const { stdout } = await run(process.execPath, [npmCli, "ls", "--all", "--package-lock-only", "--json"], { maxBuffer: 8 * 1024 * 1024 });
+  peerReport = JSON.parse(stdout);
+} catch (error) {
+  if (error.code !== 1) throw error;
+  peerReport = JSON.parse(error.stdout);
+  assert.equal(peerReport.error?.code, "ELSPROBLEMS");
+}
+await writeFile(join(outputDirectory, "peer-check.json"), JSON.stringify({ problems: peerReport.problems ?? [], error: peerReport.error }, null, 2));
 const tree = await new Arborist({ path: process.cwd() }).loadActual();
 const peerAdditions = [];
 const platformExcluded = [];
@@ -53,7 +70,7 @@ for (const node of tree.inventory.values()) {
   assert.ok(versions.get(node.name)?.has(node.version), `${node.name}@${node.version} differs from the frozen Yarn graph`);
   matched++;
 }
-const auditLock = JSON.parse(await readFile("package-lock.json", "utf8"));
+const auditLock = JSON.parse(await readFile("npm-shrinkwrap.json", "utf8"));
 let auditMatched = 0;
 for (const [location, entry] of Object.entries(auditLock.packages)) {
   if (!location) continue;
@@ -83,3 +100,4 @@ assert.ok(audit.metadata?.vulnerabilities, "The registry did not return an audit
 await writeFile(join(outputDirectory, "audit.json"), JSON.stringify(audit, null, 2));
 console.log(JSON.stringify({ phase, vulnerabilities: audit.metadata.vulnerabilities }));
 if (phase === "candidate") assert.equal(audit.metadata.vulnerabilities.total, 0, "Candidate dependencies have reported vulnerabilities");
+assert.equal(peerReport.problems?.length ?? 0, 0, "The frozen dependency graph has peer problems; see peer-check.json");
